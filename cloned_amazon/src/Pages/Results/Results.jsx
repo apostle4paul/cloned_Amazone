@@ -5,9 +5,9 @@ import { useParams } from "react-router-dom";
 import axios from "axios";
 import { productUrl } from "../../Api/endPoints";
 import ProductCard from "../../components/Product/ProductCard";
-import { Loader } from "../../components/Loader/Loader";
+import Loader from "../../components/Loader/Loader"; // Correct import for default export
+
 function Results() {
-  // get the click catagory name
   const { categoryName } = useParams();
   const [results, setResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -19,11 +19,10 @@ function Results() {
         const res = await axios.get(
           `${productUrl}/products/category/${categoryName}`
         );
-        //  console.log(res);
-        setResults(res.data); // update state with response data
-        setIsLoading(false);
+        setResults(res.data);
       } catch (err) {
         console.error(err);
+      } finally {
         setIsLoading(false);
       }
     };
