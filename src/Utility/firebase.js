@@ -22,6 +22,6 @@ export const db = getFirestore(app);
 
 // 🔹 Connect to local Firestore emulator if running on localhost
 if (window.location.hostname === "localhost") {
-  connectFirestoreEmulator(db, "localhost", 8080); // Ensure this matches your emulator port
+  connectFirestoreEmulator(db, "localhost", 8081); // Ensure this matches your emulator port
   console.log("✅ Connected to Firestore emulator on localhost:8080");
 }

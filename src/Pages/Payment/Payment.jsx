@@ -6,7 +6,7 @@ import { DataContext } from "../../components/DataProvider/DataProvider";
 import ProductCard from "../../components/Product/ProductCard";
 import { useStripe, useElements, CardElement } from "@stripe/react-stripe-js";
 import CurrencyFormatter from "../../components/CurrencyFormat/CurrencyFormat";
-import { axiosInstance } from "../../Api/axios";
+import { axiosInstance } from "../../Api/axios"; // Make sure this points to local emulator
 import { ClipLoader } from "react-spinners";
 import { db } from "../../Utility/firebase";
 import { collection, doc, setDoc } from "firebase/firestore";
@@ -44,14 +44,12 @@ function Payment() {
     setProcessing(true);
 
     try {
-      // 1️⃣ Get client secret from backend
+      // 1️⃣ Get client secret from backend (local functions emulator)
       const response = await axiosInstance.post(
         `/payment/create?total=${Math.round(totalPrice * 100)}`
       );
 
       const clientSecret = response.data?.clientSecret;
-      console.log("Client secret:", clientSecret);
-
       if (!clientSecret) throw new Error("No client secret returned from backend");
 
       // 2️⃣ Confirm payment on client side
@@ -62,18 +60,19 @@ function Payment() {
       });
 
       if (confirmation.error) {
-        console.error("Stripe confirmation error:", confirmation.error);
         setCardError(confirmation.error.message);
         setProcessing(false);
         return;
       }
 
       const { paymentIntent } = confirmation;
-      console.log("PaymentIntent:", paymentIntent);
 
-      // 3️⃣ Save order in Firestore
+      // 3️⃣ Save order in Firestore (emulator if localhost)
       try {
-        const orderRef = doc(collection(db, "users", user.uid, "orders"), paymentIntent.id);
+        const orderRef = doc(
+          collection(db, "users", user.uid, "orders"),
+          paymentIntent.id
+        );
         await setDoc(orderRef, {
           basket,
           amount: paymentIntent.amount,
@@ -87,7 +86,6 @@ function Payment() {
 
       // 4️⃣ Empty basket
       dispatch({ type: Type.EMPTY_BASKET });
-
       setProcessing(false);
 
       // 5️⃣ Navigate to orders page
