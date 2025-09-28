@@ -9,7 +9,7 @@ const dotenv = require("dotenv");
 dotenv.config();
 
 // Initialize Stripe after dotenv
-const stripe = require("stripe")(process.env.STRIPE_KEY);
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 // Initialize Express app
 const app = express();
@@ -28,7 +28,7 @@ app.get("/", (req, res) => {
 app.post("/payment/create", async (req, res) => {
   try {
     // Accept total from body (preferred) or query (fallback)
-    const total =parseInt( req.body.total )|| req.query.total;
+    const total = parseInt(req.body.total) || req.query.total;
 
     if (!total || isNaN(total) || total <= 0) {
       return res.status(400).json({

@@ -1,205 +1,121 @@
-import { useState, useContext } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { auth } from "../../Utility/firebase";
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-} from "firebase/auth";
+import React, { useContext, useState } from "react";
 import { DataContext } from "../../components/DataProvider/DataProvider";
-import { Type } from "../../Utility/action.type";
-import classes from "./Auth.module.css";
+import { useNavigate, Link, useLocation } from "react-router-dom";
+import styles from "./Auth.module.css";
 import { ClipLoader } from "react-spinners";
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../../Utility/firebase";
+import { Type } from "../../Utility/action.type";
 
 function Auth() {
-  const navigate = useNavigate();
-  const navStateData = useLocation();
-  const { dispatch } = useContext(DataContext);
+  const { state, dispatch } = useContext(DataContext);
+  const { user } = state;
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState({ signIn: false, signUp: false });
 
-  // ✅ Sign In
-  const signIn = async (e) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const authHandler = async (e) => {
     e.preventDefault();
-    setError("");
-    setLoading(true);
+    const actionType = e.target.name;
+
+    setError(""); // reset error
+
     try {
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-
-      const user = {
-        uid: userCredential.user.uid,
-        email: userCredential.user.email,
-      };
-
-      dispatch({ type: Type.SET_USER, user });
-      navigate(navStateData?.state?.redirect || "/", { replace: true });
+      if (actionType === "signin") {
+        setLoading({ ...loading, signIn: true });
+        const userInfo = await signInWithEmailAndPassword(auth, email, password);
+        dispatch({ type: Type.SET_USER, user: userInfo.user });
+        setLoading({ ...loading, signIn: false });
+        navigate(location?.state?.redirect || "/");
+      } else if (actionType === "signup") {
+        setLoading({ ...loading, signUp: true });
+        const userInfo = await createUserWithEmailAndPassword(auth, email, password);
+        dispatch({ type: Type.SET_USER, user: userInfo.user });
+        setLoading({ ...loading, signUp: false });
+        navigate(location?.state?.redirect || "/");
+      }
     } catch (err) {
       setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // ✅ Sign Up
-  const register = async (e) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-    try {
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-
-      const user = {
-        uid: userCredential.user.uid,
-        email: userCredential.user.email,
-      };
-
-      dispatch({ type: Type.SET_USER, user });
-      navigate(navStateData?.state?.redirect || "/");
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // ✅ Sign Out
-  const handleSignOut = async () => {
-    setLoading(true);
-    try {
-      await signOut(auth);
-      dispatch({ type: Type.SET_USER, user: null });
-      navigate("/");
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+      setLoading({ signIn: false, signUp: false });
     }
   };
 
   return (
-    <div className={classes.auth}>
-      {loading && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            backgroundColor: "rgba(0,0,0,0.4)",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            zIndex: 9999,
-          }}
-        >
-          <ClipLoader size={80} color="#f0c14b" />
-        </div>
-      )}
-
+    <section className={styles.login}>
+      {/* Logo */}
       <Link to="/">
         <img
-          className={classes.logo}
-          src="https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg"
-          alt="Amazon"
+          src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Amazon_logo.svg/905px-Amazon_logo.svg.png"
+          alt="Amazon Logo"
         />
       </Link>
 
-      <div className={classes.container}>
-        {auth.currentUser ? (
-          <>
-            <h1>Welcome back</h1>
-            <p style={{ marginBottom: "15px" }}>
-              You are signed in as <strong>{auth.currentUser.email}</strong>
-            </p>
+      {/* Form Container */}
+      <div className={styles.login__container}>
+        <h1>Sign In</h1>
 
-            {error && <p style={{ color: "red" }}>{error}</p>}
-
-            <button
-              type="button"
-              onClick={handleSignOut}
-              className={classes.signInButton}
-              disabled={loading}
-            >
-              Sign Out
-            </button>
-          </>
-        ) : (
-          <>
-            <h1>Sign-in</h1>
-
-            {/* ✅ Fixed optional chaining + fontWeight */}
-            {navStateData?.state?.msg && (
-              <small
-                style={{
-                  color: "red",
-                  textAlign: "center",
-                  fontWeight: "bold",
-                  padding: "5px",
-                }}
-              >
-                {navStateData?.state?.msg}
-              </small>
-            )}
-
-            <form>
-              <h5>Email</h5>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-
-              <h5>Password</h5>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-
-              {error && (
-                <p style={{ color: "red", marginTop: "10px" }}>{error}</p>
-              )}
-
-              <button
-                type="submit"
-                className={classes.signInButton}
-                onClick={signIn}
-                disabled={loading}
-              >
-                Sign In
-              </button>
-            </form>
-
-            <p style={{ fontSize: "12px", marginTop: "10px" }}>
-              By signing-in you agree to Amazon's Conditions of Use & Sale.
-              Please see our Privacy Notice, Cookies Notice, and
-              Interest-Based Ads Notice.
-            </p>
-
-            <button
-              type="button"
-              onClick={register}
-              className={classes.registerButton}
-              disabled={loading}
-            >
-              Create your Amazon Account
-            </button>
-          </>
+        {location?.state?.msg && (
+          <small style={{ padding: "5px", textAlign: "center", color: "red", fontWeight: "bold" }}>
+            {location.state.msg}
+          </small>
         )}
+
+        <form>
+          <div>
+            <label htmlFor="email">Email</label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="password">Password</label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
+
+          <button
+            type="submit"
+            name="signin"
+            onClick={authHandler}
+            className={styles.login__signInButton}
+          >
+            {loading.signIn ? <ClipLoader color="#fff" size={20} /> : "Sign In"}
+          </button>
+        </form>
+
+        {/* Create Account Button */}
+        <button
+          type="button"
+          name="signup"
+          onClick={authHandler}
+          className={styles.login__registerButton}
+        >
+          {loading.signUp ? <ClipLoader color="#fff" size={20} /> : "Create your Amazon Account"}
+        </button>
+
+        {/* Error Message */}
+        {error && <small style={{ paddingTop: "5px", color: "red" }}>{error}</small>}
+
+        {/* Agreement */}
+        <p>
+          By signing-in you agree to the AMAZON FAKE CLONE Conditions of Use & Sale. Please see our
+          Privacy Notice, our Cookies Notice and our Interest-Based Ads Notice.
+        </p>
       </div>
-    </div>
+    </section>
   );
 }
 
