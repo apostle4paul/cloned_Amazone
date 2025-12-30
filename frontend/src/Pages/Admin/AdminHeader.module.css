@@ -1,0 +1,79 @@
+.admin_nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #1a1a1a;
+  padding: 10px 20px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+  color: white;
+}
+
+.admin_logo h2 {
+  color: white;
+  margin: 0;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.admin_logo h2:hover {
+  transform: scale(1.05);
+}
+
+.admin_links {
+  display: flex;
+  list-style: none;
+  gap: 15px;
+  margin: 0;
+  padding: 0;
+  align-items: center;
+}
+
+.admin_links li a {
+  color: white;
+  text-decoration: none;
+  font-weight: 500;
+  padding: 5px 10px;
+  transition: background 0.2s ease, border-radius 0.2s ease;
+}
+
+.admin_links li a:hover {
+  background-color: #febd69;
+  color: #1a1a1a;
+  border-radius: 4px;
+}
+
+.logout_btn {
+  border: none;
+  background-color: #e74c3c;
+  color: white;
+  font-weight: 500;
+  padding: 5px 10px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.logout_btn:hover {
+  background-color: #c0392b;
+}
+
+/* Responsive */
+@media screen and (max-width: 768px) {
+  .admin_nav {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .admin_links {
+    flex-direction: column;
+    width: 100%;
+    gap: 5px;
+  }
+
+  .admin_links li a,
+  .logout_btn {
+    width: 100%;
+    text-align: center;
+  }
+}
