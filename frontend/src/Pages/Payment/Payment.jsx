@@ -1,4 +1,3 @@
-// Payment.jsx
 import React, { useContext, useState } from "react";
 import Layout from "../../components/Layout/Layout";
 import styles from "./Payment.module.css";
@@ -6,7 +5,7 @@ import { DataContext } from "../../components/DataProvider/DataProvider";
 import ProductCard from "../../components/Product/ProductCard";
 import { useStripe, useElements, CardElement } from "@stripe/react-stripe-js";
 import CurrencyFormatter from "../../components/CurrencyFormat/CurrencyFormat";
-import { axiosInstance } from "../../Api/axios"; // Make sure this points to local emulator
+import { axiosInstance } from "../../Api/axios";
 import { ClipLoader } from "react-spinners";
 import { db } from "../../Utility/firebase";
 import { collection, doc, setDoc } from "firebase/firestore";
@@ -30,7 +29,7 @@ function Payment() {
   const navigate = useNavigate();
 
   const handleChange = (e) => {
-    e?.error?.message ? setCardError(e.error.message) : setCardError("");
+    setCardError(e?.error?.message || "");
   };
 
   const handlePayment = async (e) => {
@@ -42,17 +41,18 @@ function Payment() {
     }
 
     setProcessing(true);
+    setCardError("");
 
     try {
-      // 1️⃣ Get client secret from backend (local functions emulator)
-      const response = await axiosInstance.post(
-        `/payment/create?total=${Math.round(totalPrice * 100)}`
-      );
+      // 1️⃣ Send total to backend
+      const response = await axiosInstance.post("/payment/create", {
+        total: Math.round(totalPrice * 100), // cents
+      });
 
       const clientSecret = response.data?.clientSecret;
       if (!clientSecret) throw new Error("No client secret returned from backend");
 
-      // 2️⃣ Confirm payment on client side
+      // 2️⃣ Confirm payment
       const confirmation = await stripe.confirmCardPayment(clientSecret, {
         payment_method: {
           card: elements.getElement(CardElement),
@@ -67,22 +67,17 @@ function Payment() {
 
       const { paymentIntent } = confirmation;
 
-      // 3️⃣ Save order in Firestore (emulator if localhost)
-      try {
-        const orderRef = doc(
-          collection(db, "users", user.uid, "orders"),
-          paymentIntent.id
-        );
-        await setDoc(orderRef, {
-          basket,
-          amount: paymentIntent.amount,
-          created: paymentIntent.created,
-          status: paymentIntent.status,
-        });
-        console.log("Order saved in Firestore:", orderRef.path);
-      } catch (fireErr) {
-        console.error("Failed to save order in Firestore:", fireErr);
-      }
+      // 3️⃣ Save order to Firestore
+      const orderRef = doc(
+        collection(db, "users", user.uid, "orders"),
+        paymentIntent.id
+      );
+      await setDoc(orderRef, {
+        basket,
+        amount: paymentIntent.amount,
+        created: paymentIntent.created,
+        status: paymentIntent.status,
+      });
 
       // 4️⃣ Empty basket
       dispatch({ type: Type.EMPTY_BASKET });
@@ -91,17 +86,15 @@ function Payment() {
       // 5️⃣ Navigate to orders page
       navigate("/orders", { state: { msg: "You have placed a new order" } });
     } catch (err) {
-      console.error("Payment processing failed:", err);
-      setProcessing(false);
+      console.error("Payment failed:", err);
       setCardError(err.message || "Payment failed. Try again.");
+      setProcessing(false);
     }
   };
 
   return (
     <Layout>
-      <div className={styles.payment__header}>
-        Checkout ({totalItem} items)
-      </div>
+      <div className={styles.payment__header}>Checkout ({totalItem} items)</div>
 
       <section className={styles.payment}>
         {/* Delivery Address */}

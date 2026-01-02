@@ -1,109 +1,102 @@
-import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import styles from "./AdminAuth.module.css";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import { ClipLoader } from "react-spinners";
+import styles from "./AdminAuth.module.css";
 
 const AdminAuth = () => {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleAdminAuth = (e) => {
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    emailId: "",
+    password: "",
+    phoneNo: "",
+    city: "",
+    street: "",
+    pincode: "",
+  });
+
+  const handleInputChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
     setLoading(true);
 
-    setTimeout(() => {
-      // Sign Up flow: allow everyone
-      if (isSignUp) {
-        sessionStorage.setItem("active-admin", JSON.stringify({ email }));
-        navigate("/admin/dashboard");
-      } else {
-        // Sign In flow
-        const storedAdmin = JSON.parse(sessionStorage.getItem("active-admin"));
-        if (storedAdmin?.email === email && password) {
-          navigate("/admin/dashboard");
-        } else if (email && password) {
-          // New sign-in: store in session
-          sessionStorage.setItem("active-admin", JSON.stringify({ email }));
-          navigate("/admin/dashboard");
-        } else {
-          setError("Invalid admin credentials!");
+    try {
+      const payload = isSignUp
+        ? { ...formData, pincode: parseInt(formData.pincode), role: "ADMIN" }
+        : { emailId: formData.emailId, password: formData.password, role: "ADMIN" };
+
+      const res = await fetch(
+        isSignUp
+          ? "http://localhost:8081/api/user/register"
+          : "http://localhost:8081/api/user/login",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
         }
+      );
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Request failed: ${res.status} - ${text}`);
       }
+
+      const data = await res.json();
+      sessionStorage.setItem("active-admin", JSON.stringify(data));
+      toast.success(isSignUp ? "Admin signed up!" : "Admin logged in!", {
+        position: "top-center",
+      });
+      navigate("/admin/dashboard");
+    } catch (err) {
+      toast.error(err.message || "Error occurred!", { position: "top-center" });
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   return (
-    <section className={styles.login}>
-      <Link to="/">
-        <img
-          src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Amazon_logo.svg/905px-Amazon_logo.svg.png"
-          alt="Logo"
-        />
-      </Link>
-
+    <div className={styles.login}>
       <div className={styles.login__container}>
         <h1>{isSignUp ? "Admin Sign Up" : "Admin Sign In"}</h1>
 
-        {error && <small className={styles.error}>{error}</small>}
+        <form onSubmit={handleSubmit}>
+          {isSignUp && (
+            <>
+              <input name="firstName" placeholder="First Name" value={formData.firstName} onChange={handleInputChange} required />
+              <input name="lastName" placeholder="Last Name" value={formData.lastName} onChange={handleInputChange} required />
+              <input name="phoneNo" placeholder="Phone Number" value={formData.phoneNo} onChange={handleInputChange} required />
+              <input name="city" placeholder="City" value={formData.city} onChange={handleInputChange} required />
+              <input name="street" placeholder="Street" value={formData.street} onChange={handleInputChange} required />
+              <input name="pincode" placeholder="Pincode" value={formData.pincode} onChange={handleInputChange} required />
+            </>
+          )}
 
-        <form>
-          <div>
-            <label htmlFor="email">Admin Email</label>
-            <input
-              id="email"
-              type="email"
-              placeholder="Enter admin email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
+          <input type="email" name="emailId" placeholder="Email" value={formData.emailId} onChange={handleInputChange} required />
+          <input type="password" name="password" placeholder="Password" value={formData.password} onChange={handleInputChange} required />
 
-          <div>
-            <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              type="password"
-              placeholder="Enter password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-
-          <button
-            type="submit"
-            onClick={handleAdminAuth}
-            className={styles.login__signInButton}
-          >
-            {loading ? <ClipLoader color="#fff" size={20} /> : isSignUp ? "Sign Up" : "Sign In"}
+          <button className={styles.login__signInButton} type="submit">
+            {loading ? <ClipLoader size={18} color="#111" /> : isSignUp ? "Create Admin Account" : "Sign In"}
           </button>
         </form>
 
-        <p style={{ marginTop: "15px", fontSize: "13px" }}>
-          {isSignUp ? "Already an admin?" : "New admin?"}{" "}
-          <span
-            className={styles.toggle}
-            onClick={() => {
-              setIsSignUp(!isSignUp);
-              setError("");
-            }}
-          >
-            {isSignUp ? "Sign In" : "Sign Up"}
+        <p>
+          {isSignUp ? "Already have an admin account?" : "New admin?"}{" "}
+          <span className={styles.toggle} onClick={() => setIsSignUp(!isSignUp)}>
+            {isSignUp ? "Sign In" : "Create one"}
           </span>
         </p>
-
-        <p style={{ marginTop: "10px", fontSize: "13px" }}>
-          By signing in/up, you agree to the Admin Portal rules.
-        </p>
       </div>
-    </section>
+      <ToastContainer />
+    </div>
   );
 };
 

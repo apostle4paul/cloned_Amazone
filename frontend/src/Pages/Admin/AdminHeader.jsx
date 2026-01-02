@@ -13,10 +13,10 @@ const AdminHeader = () => {
       autoClose: 1000,
     });
 
-    // Remove admin session
+    
     sessionStorage.removeItem("active-admin");
 
-    // Redirect to admin login page
+  
     navigate("/admin/auth");
   };
 

@@ -12,7 +12,7 @@ import com.onlineshopping.model.Category;
 
 @RestController
 @RequestMapping("api/category")
-@CrossOrigin(origins = "http://localhost:3000") // allow React frontend
+@CrossOrigin(origins = "http://localhost:5173") // allow React frontend
 public class CategoryController {
 
     @Autowired

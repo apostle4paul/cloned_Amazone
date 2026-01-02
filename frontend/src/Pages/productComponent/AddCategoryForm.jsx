@@ -16,29 +16,29 @@ const AddCategoryForm = () => {
     const data = { title, description };
 
     try {
-      const response = await fetch("http://localhost:8080/api/category/add", {
+      const response = await fetch("http://localhost:8081/api/category/add", {
         method: "POST",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
 
-      if (response.ok) {
-        const savedCategory = await response.json();
-        console.log("Saved category:", savedCategory);
-        alert("Category added successfully");
-        setTitle("");
-        setDescription("");
-      } else {
-        const errorText = await response.text();
-        console.error("Failed to add category:", errorText);
-        alert("Failed to add category");
+      // Read backend response text for better debugging
+      const text = await response.text();
+      console.log("Backend response:", text);
+
+      if (!response.ok) {
+        throw new Error(text || "Failed to save category");
       }
+
+      const result = JSON.parse(text); // Parse JSON if successful
+      console.log("Saved category:", result);
+      alert("Category added successfully");
+
+      setTitle("");
+      setDescription("");
     } catch (error) {
-      console.error("Server error:", error);
-      alert("Server error. Please try again.");
+      console.error("Error:", error);
+      alert("Server error: " + error.message);
     }
   };
 

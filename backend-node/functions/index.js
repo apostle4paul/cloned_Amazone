@@ -1,62 +1,31 @@
-const { setGlobalOptions } = require("firebase-functions/v2");
-const { onRequest } = require("firebase-functions/v2/https");
-const logger = require("firebase-functions/logger");
+const functions = require("firebase-functions");
 const express = require("express");
 const cors = require("cors");
-const dotenv = require("dotenv");
+const Stripe = require("stripe");
+require("dotenv").config(); // Load .env
 
-// Load environment variables first
-dotenv.config();
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-// Initialize Stripe after dotenv
-const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
-
-// Initialize Express app
 const app = express();
-app.use(cors({ origin: true }));
+app.use(cors({ origin: "http://localhost:5173" })); // allow frontend
 app.use(express.json());
 
-// Limit global options for Firebase Functions
-setGlobalOptions({ maxInstances: 10 });
-
-// Root route
-app.get("/", (req, res) => {
-  res.status(200).json({ message: "success!" });
-});
-
-// Unified Stripe payment route
+// Payment route
 app.post("/payment/create", async (req, res) => {
   try {
-    // Accept total from body (preferred) or query (fallback)
-    const total = parseInt(req.body.total) || req.query.total;
+    const { total } = req.body;
 
-    if (!total || isNaN(total) || total <= 0) {
-      return res.status(400).json({
-        error: "Valid total amount is required (greater than 0)",
-      });
-    }
-
+    // Create a Stripe PaymentIntent
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: parseInt(total, 10), // always use integer cents
+      amount: total, // in cents
       currency: "usd",
     });
 
-    // Log to console + Firebase logger
-    console.log("💰 Payment created:", paymentIntent);
-    logger.info("Payment created", paymentIntent);
-
-    // Send full details back in response (for Thunder Client)
-    res.status(201).json({
-      message: "Payment intent created successfully",
-      clientSecret: paymentIntent.client_secret,
-      paymentIntent, // includes id, amount, status, etc.
-    });
+    res.json({ clientSecret: paymentIntent.client_secret });
   } catch (error) {
-    console.error("Payment failed:", error);
-    logger.error("Payment failed:", error);
+    console.error(error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// Export as Firebase Function
-exports.api = onRequest(app);
+exports.api = functions.https.onRequest(app);
